@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     'drf.apps.DrfConfig',
     'rest_framework',  # RESTful API
+    'django_filters',
     'rest_framework.authtoken' # DRF自带的Token认证
 ]
 
@@ -134,8 +135,9 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # DRF的全局配置
 REST_FRAMEWORK = {
+    'DEFAULT_SCHEMA_CLASS':'rest_framework.schemas.coreapi.AutoSchema',
     'DEFAULT_PAGINATION_CLASS':'rest_framework.pagination.PageNumberPagination',
-    'PAGE_SIZE':50,
+    'PAGE_SIZE':2,
     'DATATIME_FORMAT':'%Y-%m-%d %H:%M:%S',
     'DEFAULT_RENDER_CLASSES':[
         'rest_framework.renders.JSONRenderer',
@@ -153,5 +155,7 @@ REST_FRAMEWORK = {
         'rest_framework.authentication.BasicAuthentication',
         'rest_framework.authentication.SessionAuthentication',
         'rest_framework.authentication.TokenAuthentication',
-    ]
+    ],
+    'DEFAULT_FILTER_BACKENDS':("django_filters.rest_framework.DjangoFilterBackend",)
 }
+

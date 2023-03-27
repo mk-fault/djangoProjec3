@@ -17,6 +17,7 @@ from django.contrib import admin
 from django.urls import path,include
 # from drf import views
 from rest_framework.authtoken import views
+from rest_framework.documentation import include_docs_urls
 
 urlpatterns = [
     path("admin/", admin.site.urls),
@@ -24,5 +25,6 @@ urlpatterns = [
     # path("test",views.ip),
     # path("test/test",views.ip2),
     path("course/",include('drf.urls')),
-    path("api-token-auth/",views.obtain_auth_token)
+    path("api-token-auth/",views.obtain_auth_token),
+    path("docs/",include_docs_urls(title='DRF API文档',description='太有才了我晒太阳'))
 ]

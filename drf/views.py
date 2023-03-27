@@ -10,10 +10,14 @@ from django.dispatch import receiver
 from django.contrib.auth.models import User
 from django.conf import settings
 
+from django_filters import rest_framework as filters
+from rest_framework.filters import OrderingFilter
+
 from drf import models
 from drf.serializers import CourseSerializer
+from drf.permissions import IsOwnerEditOnly
 
-from rest_framework.decorators import api_view,authentication_classes
+from rest_framework.decorators import api_view,authentication_classes,permission_classes
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -21,6 +25,8 @@ from rest_framework import generics
 from rest_framework import viewsets
 from rest_framework.authtoken.models import Token
 from rest_framework.authentication import BasicAuthentication,SessionAuthentication,TokenAuthentication
+from rest_framework.permissions import IsAuthenticated,IsAuthenticatedOrReadOnly,IsAdminUser
+
 
 # Create your views here.
 def ip(request):
@@ -71,7 +77,8 @@ class CourseList(View):
         return JsonResponse(course, safe=False)
 
 @api_view(['GET','POST'])
-@authentication_classes([BasicAuthentication,TokenAuthentication]) # 为视图绑定验证方式，会禁用全局设置
+@authentication_classes([BasicAuthentication,TokenAuthentication]) # 为函数视图绑定验证方式，会禁用全局设置
+@permission_classes((IsAuthenticatedOrReadOnly,)) # 为函数视图绑定权限，会禁用全局设置
 def course_list_api(request):
     """DRF用FBV式编写API"""
     if request.method == 'GET':
@@ -104,7 +111,7 @@ def course_detail_api(request,pk):
             return Response(data=s.errors,status=status.HTTP_400_BAD_REQUEST)
 
         elif request.method == 'PATCH':
-            s = CourseSerializer(instance=course,data=request.data)
+            s = CourseSerializer(instance=course,data=request.data,partial=True)
             if s.is_valid():
                 s.save()
                 return Response(data=s.data,status=status.HTTP_200_OK)
@@ -165,10 +172,23 @@ class CourseDetailAPI(APIView):
         course.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
+# 添加过滤字段，可通过url后面加上 ?teacher=物理 过滤字段
+class CourseFilter(filters.FilterSet):
+    class Meta:
+        model = models.Course
+        fields = ['teacher','name','price']
+
+
+
 """通用类模型视图GCBV,推荐！！"""
 class GCourseListAPI(generics.ListCreateAPIView):
     queryset = models.Course.objects.all()
     serializer_class = CourseSerializer
+    filterset_class = CourseFilter
+    # filter_fields = ['teacher','name','price']  # 效果同写filter类
+    filter_backends = (OrderingFilter,filters.DjangoFilterBackend)
+    ordering_fields = ['id','price']
+    pagination_class = None
 
     # 因为要添加教师，所以需重写添加方法，可以点进ListCreateAPIView里看到
     def perform_create(self, serializer):
@@ -183,6 +203,7 @@ class CourseViewSets(viewsets.ModelViewSet):
     queryset = models.Course.objects.all()
     serializer_class = CourseSerializer
     authentication_classes = [BasicAuthentication,TokenAuthentication] # 类视图绑定验证的方法
+    permission_classes = (IsOwnerEditOnly,) # 类视图绑定权限的方法
 
     def perform_create(self, serializer):
         serializer.save(teacher=self.request.user)
